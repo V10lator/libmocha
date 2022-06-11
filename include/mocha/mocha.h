@@ -111,6 +111,9 @@ MochaUtilsStatus Mocha_ODMGetDiscKey(WUDDiscKey *discKey);
 
 MochaUtilsStatus Mocha_SEEPROMRead(uint8_t *out_buffer, uint32_t offset, uint32_t size);
 
+int32_t fsaUnmount(const char *virt_name);
+int32_t fsaMount(const char *virt_name, const char *dev_path, const char *mount_path);
+
 #ifdef __cplusplus
 } // extern "C"
 #endif
