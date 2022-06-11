@@ -9,11 +9,14 @@ int mochaInitDone        = 0;
 uint32_t mochaApiVersion = 0;
 
 MochaUtilsStatus Mocha_InitLibrary() {
+    if (mochaInitDone) {
+        return MOCHA_RESULT_SUCCESS;
+    }
     mochaInitDone    = 1;
     mochaApiVersion  = 0;
     uint32_t version = 0;
     if (Mocha_CheckAPIVersion(&version) != MOCHA_RESULT_SUCCESS) {
-        return MOCHA_RESULT_SUCCESS;
+        return MOCHA_RESULT_UNSUPPORTED_COMMAND;
     }
 
     mochaApiVersion = version;

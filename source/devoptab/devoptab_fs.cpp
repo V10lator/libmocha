@@ -1,5 +1,6 @@
 #include "devoptab_fs.h"
 #include "logger.h"
+#include "mocha/mocha.h"
 #include <coreinit/cache.h>
 #include <coreinit/filesystem_fsa.h>
 #include <mocha/mocha.h>
@@ -81,22 +82,21 @@ FSADeviceData *fsa_alloc() {
 }
 
 static void fsa_free(FSADeviceData *mount) {
-    int res;
+    FSError res;
     if (mount->mounted) {
-        DEBUG_FUNCTION_LINE_ERR("Call FSAUnmount for %s with clientHandle 0x%08X", mount->mount_path, mount->clientHandle);
-        // 2 = force?
-        if ((res = FSAUnmount(mount->clientHandle, mount->mount_path, static_cast<FSAUnmountFlags>(2))) < 0) {
-            DEBUG_FUNCTION_LINE_ERR("FSAUnmount failed: %d", res);
+        if ((res = FSAUnmount(mount->clientHandle, mount->mount_path, FSA_UNMOUNT_FLAG_FORCE)) < 0) {
+           DEBUG_FUNCTION_LINE_ERR("FSAUnmount %s for %s failed: %s", mount->mount_path, mount->name, FSAGetStatusStr(res));
         }
     }
     res = FSADelClient(mount->clientHandle);
     if (res < 0) {
-        DEBUG_FUNCTION_LINE_ERR("FSADelClient failed: %d", res);
+        DEBUG_FUNCTION_LINE_ERR("FSADelClient for %s failed: %d", mount->name, FSAGetStatusStr(res));
     }
     fsaResetMount(mount, mount->id);
 }
 
-int32_t fsaUnmount(const char *virt_name) {
+MochaUtilsStatus Mocha_UnmountFS(const char *virt_name) {
+    std::lock_guard<std::mutex> lock(fsaMutex);
     uint32_t total = sizeof(fsa_mounts) / sizeof(fsa_mounts[0]);
 
     fsaInit();
@@ -107,46 +107,45 @@ int32_t fsaUnmount(const char *virt_name) {
             continue;
         }
         if (strcmp(mount->name, virt_name) == 0) {
-            fsa_free(mount);
             RemoveDevice(mount->name);
-            return 0;
+            fsa_free(mount);
+            return MOCHA_RESULT_SUCCESS;
         }
     }
 
     DEBUG_FUNCTION_LINE_ERR("Failed to find fsa mount data for %s", virt_name);
-
-    return -1;
+    return MOCHA_RESULT_NOT_FOUND;
 }
 extern int mochaInitDone;
-int32_t fsaMount(const char *virt_name, const char *dev_path, const char *mount_path) {
+
+MochaUtilsStatus Mocha_MountFS(const char *virt_name, const char *dev_path, const char *mount_path) {
     if (!mochaInitDone) {
         if (Mocha_InitLibrary() != MOCHA_RESULT_SUCCESS) {
             DEBUG_FUNCTION_LINE_ERR("Mocha_InitLibrary failed");
-            return -80;
+            return MOCHA_RESULT_UNSUPPORTED_COMMAND;
         }
-        FSAInit();
     }
-    std::lock_guard<std::mutex> lock(fsaMutex);
 
-    DEBUG_FUNCTION_LINE_ERR("Mount %s %s %s", virt_name, dev_path, mount_path);
+    FSAInit();
+    std::lock_guard<std::mutex> lock(fsaMutex);
 
     FSADeviceData *mount = fsa_alloc();
     if (mount == nullptr) {
         DEBUG_FUNCTION_LINE_ERR("fsa_alloc() failed");
         OSMemoryBarrier();
-        return -99;
+        return MOCHA_RESULT_OUT_OF_MEMORY;
     }
 
     mount->clientHandle = FSAAddClient(nullptr);
     if (mount->clientHandle < 0) {
-        DEBUG_FUNCTION_LINE_ERR("FSAAddClient() failed: %d", mount->clientHandle);
+        DEBUG_FUNCTION_LINE_ERR("FSAAddClient() failed: %s", FSAGetStatusStr(static_cast<FSError>(mount->clientHandle)));
         fsa_free(mount);
-        return -98;
+        return MOCHA_RESULT_MAX_CLIENT;
     }
 
     if (Mocha_UnlockFSClientEx(mount->clientHandle) != MOCHA_RESULT_SUCCESS) {
-        DEBUG_FUNCTION_LINE_ERR("Mocha_UnlockFSClientEx(mount->clientHandle) failed");
-        return -79;
+        DEBUG_FUNCTION_LINE_ERR("Mocha_UnlockFSClientEx failed");
+        return MOCHA_RESULT_UNSUPPORTED_COMMAND;
     }
 
     mount->mounted = false;
@@ -156,14 +155,16 @@ int32_t fsaMount(const char *virt_name, const char *dev_path, const char *mount_
     FSError res;
     if (dev_path) {
         res = FSAMount(mount->clientHandle, dev_path, mount_path, FSA_MOUNT_FLAG_GLOBAL_MOUNT, nullptr, 0);
-        if (res != 0) {
+        if (res < 0) {
             DEBUG_FUNCTION_LINE_ERR("FSAMount(0x%08X, %s, %s, FSA_MOUNT_FLAG_GLOBAL_MOUNT, nullptr, 0) failed: %s", mount->clientHandle, dev_path, mount_path, FSAGetStatusStr(res));
             fsa_free(mount);
-            return -96;
+            if (res == FS_ERROR_ALREADY_EXISTS) {
+                return MOCHA_RESULT_ALREADY_EXISTS;
+            }
+            return MOCHA_RESULT_UNKNOWN_ERROR;
         }
         mount->mounted = true;
     } else {
-        DEBUG_FUNCTION_LINE_ERR("To not mount, use existing mount");
         mount->mounted = false;
     }
 
@@ -176,23 +177,18 @@ int32_t fsaMount(const char *virt_name, const char *dev_path, const char *mount_
         mount->deviceSizeInSectors = deviceInfo.deviceSizeInSectors;
         mount->deviceSectorSize    = deviceInfo.deviceSectorSize;
     } else {
-        mount->deviceSizeInSectors = 0;
-        mount->deviceSectorSize    = 0;
+        mount->deviceSizeInSectors = 0xFFFFFFFF;
+        mount->deviceSectorSize    = 512;
         DEBUG_FUNCTION_LINE_ERR("Failed to get DeviceInfo for %s: %s", mount_path, FSAGetStatusStr(res));
-
-        //TODO fallback to other values?
-        return -97;
     }
 
-
     if (AddDevice(&mount->device) < 0) {
-        DEBUG_FUNCTION_LINE_ERR("AddDevice failed");
+        DEBUG_FUNCTION_LINE_ERR("AddDevice failed for %s.", virt_name);
         fsa_free(mount);
-        return -96;
+        return MOCHA_RESULT_ADD_DEVOPTAB_FAILED;
     }
 
     mount->setup = true;
 
-
-    return 0;
+    return MOCHA_RESULT_SUCCESS;
 }

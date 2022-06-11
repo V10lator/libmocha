@@ -1,6 +1,6 @@
 FROM wiiuenv/devkitppc:20220605
 
-RUN git clone --depth 1 --single-branch -b filesystemstructs https://github.com/Maschell/wut && cd wut && git reset --hard ad9e9c06a2ae8e813df296c668a96c06b966e520 && make install && cd .. && rm -rf wut
+RUN git clone --depth 1 --single-branch -b filesystemstructs https://github.com/Maschell/wut && cd wut && git reset --hard 1780dc5747a0f5fe708b9bbf5b280fa41f6d40e1 && make install && cd .. && rm -rf wut
 
 WORKDIR tmp_build
 COPY . .

@@ -1,12 +1,11 @@
 #include "mocha/fsa.h"
+#include "logger.h"
 #include "utils.h"
 #include <coreinit/debug.h>
 #include <coreinit/filesystem.h>
 #include <coreinit/filesystem_fsa.h>
 #include <cstring>
 #include <malloc.h>
-#include <mocha/fsa.h>
-#include <string_view>
 
 FSError FSAEx_RawOpen(FSClient *client, char *device_path, int32_t *outHandle) {
     if (!client) {
@@ -105,10 +104,10 @@ FSError FSAEx_RawReadEx(int clientHandle, void *data, uint32_t size_bytes, uint3
     if ((uint32_t) data & 0x3F) {
         auto *alignedBuffer = memalign(0x40, ROUNDUP(size_bytes * cnt, 0x40));
         if (!alignedBuffer) {
-            OSReport("## ERROR: FSAEx_RawReadEx buffer not aligned (%08X).\n", data);
+            DEBUG_FUNCTION_LINE_ERR("FSAEx_RawReadEx buffer not aligned (%08X).\n", data);
             return FS_ERROR_INVALID_ALIGNMENT;
         }
-        OSReport("## WARNING: FSAEx_RawReadEx buffer not aligned (%08X). Align to 0x40 for best performance\n", data);
+        DEBUG_FUNCTION_LINE_WARN("FSAEx_RawReadEx buffer not aligned (%08X). Align to 0x40 for best performance\n", data);
         tmp = alignedBuffer;
     }
 
