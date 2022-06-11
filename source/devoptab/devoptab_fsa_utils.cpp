@@ -27,7 +27,7 @@ __fsa_fixpath(struct _reent *r,
         return nullptr;
     }
 
-    if(p[0] == '/') {
+    if (p[0] == '/') {
         auto *deviceData = (FSADeviceData *) r->deviceData;
         strcpy(fixedPath, deviceData->mount_path);
         strcat(fixedPath, p);

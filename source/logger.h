@@ -2,11 +2,11 @@
 #include <coreinit/debug.h>
 #include <cstring>
 
-#define __FILENAME__ ({                            \
-    const char *__filename = __FILE__;               \
+#define __FILENAME__ ({                                \
+    const char *__filename = __FILE__;                 \
     const char *__pos      = strrchr(__filename, '/'); \
-    if (!__pos) __pos = strrchr(__filename, '\\');       \
-    __pos ? __pos + 1 : __filename;                      \
+    if (!__pos) __pos = strrchr(__filename, '\\');     \
+    __pos ? __pos + 1 : __filename;                    \
 })
 
 #define DEBUG_FUNCTION_LINE_ERR(FMT, ARGS...)                                                                                         \

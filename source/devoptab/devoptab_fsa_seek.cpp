@@ -58,7 +58,7 @@ off_t __fsa_seek(struct _reent *r,
         return -1;
     }
 
-    status       = FSASetPosFile(deviceData->clientHandle, file->fd, file->offset);
+    status = FSASetPosFile(deviceData->clientHandle, file->fd, file->offset);
     if (status < 0) {
         DEBUG_FUNCTION_LINE_ERR("FSASetPosFile(0x%08X, 0x%08X, 0x%08X) failed: %s", deviceData->clientHandle, file->fd, file->offset, FSAGetStatusStr(status));
         r->_errno = __fsa_translate_error(status);
