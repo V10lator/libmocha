@@ -9,8 +9,8 @@
     __pos ? __pos + 1 : __filename;                    \
 })
 
-#define LOG_APP_TYPE                                                "L"
-#define LOG_APP_NAME                                                "libmocha"
+#define LOG_APP_TYPE "L"
+#define LOG_APP_NAME "libmocha"
 
 #define LOG_EX(FILENAME, FUNCTION, LINE, LOG_FUNC, LOG_LEVEL, LINE_END, FMT, ARGS...)                                                        \
     do {                                                                                                                                     \
@@ -20,5 +20,5 @@
 #define LOG_EX_DEFAULT(LOG_FUNC, LOG_LEVEL, LINE_END, FMT, ARGS...) LOG_EX(__FILENAME__, __FUNCTION__, __LINE__, LOG_FUNC, LOG_LEVEL, LINE_END, FMT, ##ARGS)
 
 
-#define DEBUG_FUNCTION_LINE_ERR(FMT, ARGS...)  LOG_EX_DEFAULT(OSReport, "##ERROR## ", "\n", FMT, ##ARGS)
-#define DEBUG_FUNCTION_LINE_WARN(FMT, ARGS...) LOG_EX_DEFAULT(OSReport, "##WARNING## ", "\n", FMT, ##ARGS)
+#define DEBUG_FUNCTION_LINE_ERR(FMT, ARGS...)                       LOG_EX_DEFAULT(OSReport, "##ERROR## ", "\n", FMT, ##ARGS)
+#define DEBUG_FUNCTION_LINE_WARN(FMT, ARGS...)                      LOG_EX_DEFAULT(OSReport, "##WARNING## ", "\n", FMT, ##ARGS)

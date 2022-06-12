@@ -85,7 +85,7 @@ static void fsa_free(FSADeviceData *mount) {
     FSError res;
     if (mount->mounted) {
         if ((res = FSAUnmount(mount->clientHandle, mount->mount_path, FSA_UNMOUNT_FLAG_FORCE)) < 0) {
-           DEBUG_FUNCTION_LINE_ERR("FSAUnmount %s for %s failed: %s", mount->mount_path, mount->name, FSAGetStatusStr(res));
+            DEBUG_FUNCTION_LINE_ERR("FSAUnmount %s for %s failed: %s", mount->mount_path, mount->name, FSAGetStatusStr(res));
         }
     }
     res = FSADelClient(mount->clientHandle);
